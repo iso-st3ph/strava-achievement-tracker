@@ -85,7 +85,7 @@ _Coming soon!_
 ## 🏗️ Development Roadmap
 
 - [x] Project setup
-- [ ] Strava OAuth authentication
+- [x] Strava OAuth authentication
 - [ ] Activity data fetching
 - [ ] Dashboard UI
 - [ ] Achievement system
