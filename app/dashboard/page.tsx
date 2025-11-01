@@ -6,6 +6,9 @@ import { StravaActivity } from "@/lib/strava";
 import { Achievement } from "@/types";
 import { calculateAchievements, getUnlockedCount, sortAchievements } from "@/lib/achievements";
 import AchievementBadge from "@/components/AchievementBadge";
+import DistanceChart from "@/components/DistanceChart";
+import WeeklySummary from "@/components/WeeklySummary";
+import PaceDistribution from "@/components/PaceDistribution";
 
 interface StravaStats {
   athlete: {
@@ -44,6 +47,7 @@ export default function Dashboard() {
   const [session, setSession] = useState<Session | null>(null);
   const [stats, setStats] = useState<StravaStats | null>(null);
   const [activities, setActivities] = useState<StravaActivity[]>([]);
+  const [recentActivities, setRecentActivities] = useState<StravaActivity[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,21 +79,24 @@ export default function Dashboard() {
       setLoading(true);
       setError(null);
 
-      // Fetch stats and activities in parallel
-      const [statsRes, activitiesRes] = await Promise.all([
+      // Fetch stats and activities in parallel (get more activities for charts)
+      const [statsRes, activitiesRes, recentActivitiesRes] = await Promise.all([
         fetch("/api/strava/stats"),
-        fetch("/api/strava/activities?per_page=10"),
+        fetch("/api/strava/activities?per_page=50"), // More activities for charts
+        fetch("/api/strava/activities?per_page=10"), // Recent for list
       ]);
 
-      if (!statsRes.ok || !activitiesRes.ok) {
+      if (!statsRes.ok || !activitiesRes.ok || !recentActivitiesRes.ok) {
         throw new Error("Failed to fetch data");
       }
 
       const statsData = await statsRes.json();
       const activitiesData = await activitiesRes.json();
+      const recentActivitiesData = await recentActivitiesRes.json();
 
       setStats(statsData);
       setActivities(activitiesData);
+      setRecentActivities(recentActivitiesData);
       
       // Calculate achievements based on stats
       const calculatedAchievements = calculateAchievements(statsData.stats);
@@ -212,6 +219,65 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Data Visualization Section */}
+        <div className="mb-8 space-y-6">
+          <h3 className="text-2xl font-bold">Performance Analytics</h3>
+          
+          {/* Distance & Pace Over Time */}
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <h4 className="text-xl font-semibold mb-4">Distance & Pace Trends</h4>
+            {loading ? (
+              <div className="text-gray-400 text-center py-20">
+                <div className="text-3xl mb-2">📊</div>
+                <p>Loading chart...</p>
+              </div>
+            ) : activities.length > 0 ? (
+              <DistanceChart activities={activities} />
+            ) : (
+              <div className="text-gray-400 text-center py-20">
+                <p>Not enough data for visualization</p>
+              </div>
+            )}
+          </div>
+
+          {/* Two Column Layout for Other Charts */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Weekly Summary */}
+            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+              <h4 className="text-xl font-semibold mb-4">Weekly Distance</h4>
+              {loading ? (
+                <div className="text-gray-400 text-center py-20">
+                  <div className="text-3xl mb-2">📊</div>
+                  <p>Loading...</p>
+                </div>
+              ) : activities.length > 0 ? (
+                <WeeklySummary activities={activities} />
+              ) : (
+                <div className="text-gray-400 text-center py-20">
+                  <p>No data available</p>
+                </div>
+              )}
+            </div>
+
+            {/* Pace Distribution */}
+            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+              <h4 className="text-xl font-semibold mb-4">Pace Distribution</h4>
+              {loading ? (
+                <div className="text-gray-400 text-center py-20">
+                  <div className="text-3xl mb-2">📊</div>
+                  <p>Loading...</p>
+                </div>
+              ) : activities.length > 0 ? (
+                <PaceDistribution activities={activities} />
+              ) : (
+                <div className="text-gray-400 text-center py-20">
+                  <p>No data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Recent Activities Section */}
         <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
           <h3 className="text-2xl font-bold mb-4">Recent Activities</h3>
@@ -232,7 +298,7 @@ export default function Dashboard() {
               <p>Loading activities...</p>
             </div>
           )}
-          {!loading && !error && activities.length === 0 && (
+          {!loading && !error && recentActivities.length === 0 && (
             <div className="text-gray-400 text-center py-8">
               <div className="text-5xl mb-4">🏃</div>
               <p>No activities found</p>
@@ -241,9 +307,9 @@ export default function Dashboard() {
               </p>
             </div>
           )}
-          {!loading && !error && activities.length > 0 && (
+          {!loading && !error && recentActivities.length > 0 && (
             <div className="space-y-3">
-              {activities.map((activity) => (
+              {recentActivities.map((activity) => (
                 <div
                   key={activity.id}
                   className="bg-gray-700 p-4 rounded-lg hover:bg-gray-650 transition-colors"
