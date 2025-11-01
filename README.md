@@ -124,7 +124,7 @@ The app tracks 18 unique achievements across three categories:
 
 Each locked achievement displays a progress bar showing how close you are to unlocking it!
 
-## �🏗️ Development Roadmap
+## ️ Development Roadmap
 
 - [x] Project setup with Next.js 14 + TypeScript
 - [x] Custom OAuth2 authentication flow
@@ -133,11 +133,96 @@ Each locked achievement displays a progress bar showing how close you are to unl
 - [x] Activity data fetching and display
 - [x] Dashboard UI with athlete stats
 - [x] Achievement system (18 badges)
-- [ ] Data visualization with charts
-- [ ] PostgreSQL database integration
-- [ ] Docker deployment
-- [ ] CI/CD pipeline with GitHub Actions
+- [x] Data visualization with charts
+- [x] PostgreSQL database integration
+- [x] Docker deployment
+- [x] CI/CD pipeline with GitHub Actions
 - [ ] Infrastructure as Code (Terraform)
+- [ ] Cloud deployment (AWS/GCP/DigitalOcean)
+
+## 🐳 Docker Deployment
+
+### Quick Start with Docker Compose
+
+1. **Clone and configure:**
+
+   ```bash
+   git clone https://github.com/iso-st3ph/strava-achievement-tracker.git
+   cd strava-achievement-tracker
+   cp .env.production .env
+   ```
+
+2. **Edit `.env` with your credentials:**
+
+   ```env
+   STRAVA_CLIENT_ID=your_client_id
+   STRAVA_CLIENT_SECRET=your_client_secret
+   NEXTAUTH_URL=http://localhost:3000
+   ```
+
+3. **Deploy with one command:**
+
+   ```bash
+   ./deploy.sh
+   ```
+
+   Or manually:
+
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Access the application:**
+
+   Open http://localhost:3000
+
+### Manual Docker Build
+
+```bash
+# Build the image
+docker build -t strava-tracker .
+
+# Run with PostgreSQL
+docker-compose up
+```
+
+### Production Deployment
+
+For production, update `NEXTAUTH_URL` in `.env` to your domain:
+
+```env
+NEXTAUTH_URL=https://yourdomain.com
+```
+
+Also update your Strava OAuth callback URL at https://www.strava.com/settings/api
+
+### Health Checks
+
+- **Application:** http://localhost:3000
+- **Database:** PostgreSQL on port 5432
+- **Logs:** `docker-compose logs -f`
+
+### Useful Commands
+
+```bash
+# View logs
+docker-compose logs -f app
+
+# Restart services
+docker-compose restart
+
+# Stop services
+docker-compose down
+
+# Rebuild and restart
+docker-compose up -d --build
+
+# Run database migrations
+docker-compose exec app npx prisma migrate deploy
+
+# Access database
+docker-compose exec postgres psql -U strava -d strava_tracker
+```
 
 ## 📝 License
 
