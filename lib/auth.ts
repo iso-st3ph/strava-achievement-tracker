@@ -83,14 +83,49 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
 }
 
 export const authOptions: NextAuthOptions = {
+  debug: true,
   providers: [
     {
       id: "strava",
       name: "Strava",
       type: "oauth",
-      authorization: "https://www.strava.com/oauth/authorize?scope=read,activity:read_all,profile:read_all&approval_prompt=auto",
-      token: "https://www.strava.com/oauth/token",
-      userinfo: "https://www.strava.com/api/v3/athlete",
+      authorization: {
+        url: "https://www.strava.com/oauth/authorize",
+        params: { 
+          scope: "read,activity:read_all,profile:read_all",
+        }
+      },
+      token: {
+        async request(context: any) {
+          const { provider, params, checks } = context;
+          
+          const response = await fetch("https://www.strava.com/oauth/token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              client_id: provider.clientId!,
+              client_secret: provider.clientSecret!,
+              code: params.code!,
+              grant_type: "authorization_code",
+            }),
+          });
+
+          const tokens = await response.json();
+          return { tokens };
+        },
+      },
+      userinfo: {
+        async request(context: any) {
+          const response = await fetch("https://www.strava.com/api/v3/athlete", {
+            headers: {
+              Authorization: `Bearer ${context.tokens.access_token}`,
+            },
+          });
+          return await response.json();
+        },
+      },
       clientId: process.env.STRAVA_CLIENT_ID,
       clientSecret: process.env.STRAVA_CLIENT_SECRET,
       profile(profile: StravaProfile) {
@@ -101,7 +136,7 @@ export const authOptions: NextAuthOptions = {
           image: profile.profile_medium || profile.profile,
         };
       },
-    },
+    } as any,
   ],
   callbacks: {
     async jwt({ token, account, user }) {
