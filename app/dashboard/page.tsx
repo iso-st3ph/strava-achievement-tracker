@@ -51,6 +51,8 @@ export default function Dashboard() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   useEffect(() => {
     checkSession();
@@ -115,6 +117,33 @@ export default function Dashboard() {
     router.push("/");
   };
 
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      setSyncMessage(null);
+
+      // Sync activities
+      const activitiesRes = await fetch("/api/db/activities", { method: "POST" });
+      const activitiesData = await activitiesRes.json();
+
+      // Sync achievements
+      const achievementsRes = await fetch("/api/db/achievements", { method: "POST" });
+      const achievementsData = await achievementsRes.json();
+
+      setSyncMessage(
+        `✅ Synced ${activitiesData.synced} activities. ${achievementsData.message}`
+      );
+
+      // Refresh data
+      await fetchData();
+    } catch (err) {
+      console.error("Sync error:", err);
+      setSyncMessage("❌ Sync failed. Please try again.");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   if (loading && !session) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -135,6 +164,28 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">🏃‍♂️ Strava Tracker</h1>
             <div className="flex items-center gap-4">
+              {syncMessage && (
+                <div className="text-sm px-3 py-1 rounded-lg bg-gray-700 text-gray-300">
+                  {syncMessage}
+                </div>
+              )}
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              >
+                {syncing ? (
+                  <>
+                    <span className="animate-spin">⟳</span>
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <span>🔄</span>
+                    Sync Data
+                  </>
+                )}
+              </button>
               <div className="flex items-center gap-3">
                 {session.athlete.profile_medium && (
                   <img
