@@ -1,4 +1,23 @@
+"use client";
+
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/dashboard");
+    }
+  }, [status, router]);
+
+  const handleConnect = () => {
+    signIn("strava", { callbackUrl: "/dashboard" });
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
       <div className="container mx-auto px-4 py-16">
@@ -10,8 +29,12 @@ export default function Home() {
             Track your running journey with custom achievements and stats
           </p>
           <div className="flex gap-4 justify-center">
-            <button className="bg-strava-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition-colors">
-              Connect with Strava
+            <button
+              onClick={handleConnect}
+              disabled={status === "loading"}
+              className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {status === "loading" ? "Loading..." : "Connect with Strava"}
             </button>
             <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-8 rounded-lg transition-colors">
               Learn More
