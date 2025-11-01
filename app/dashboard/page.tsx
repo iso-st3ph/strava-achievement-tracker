@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { StravaActivity } from "@/lib/strava";
@@ -27,25 +26,45 @@ interface StravaStats {
   };
 }
 
+interface Session {
+  athlete: {
+    id: number;
+    firstname: string;
+    lastname: string;
+    profile_medium: string;
+    profile: string;
+  };
+}
+
 export default function Dashboard() {
-  const { data: session, status } = useSession();
   const router = useRouter();
+  const [session, setSession] = useState<Session | null>(null);
   const [stats, setStats] = useState<StravaStats | null>(null);
   const [activities, setActivities] = useState<StravaActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    checkSession();
+  }, []);
+
+  const checkSession = async () => {
+    try {
+      const res = await fetch("/api/session");
+      const data = await res.json();
+      
+      if (!data.session) {
+        router.push("/");
+        return;
+      }
+      
+      setSession(data.session);
+      fetchData();
+    } catch (err) {
+      console.error("Session check failed:", err);
       router.push("/");
     }
-  }, [status, router]);
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetchData();
-    }
-  }, [status]);
+  };
 
   const fetchData = async () => {
     try {
@@ -75,7 +94,12 @@ export default function Dashboard() {
     }
   };
 
-  if (status === "loading") {
+  const handleSignOut = async () => {
+    await fetch("/api/logout", { method: "POST" });
+    router.push("/");
+  };
+
+  if (loading && !session) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
@@ -96,17 +120,19 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold">🏃‍♂️ Strava Tracker</h1>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
-                {session.user?.image && (
+                {session.athlete.profile_medium && (
                   <img
-                    src={session.user.image}
-                    alt={session.user.name || "User"}
+                    src={session.athlete.profile_medium}
+                    alt={`${session.athlete.firstname} ${session.athlete.lastname}`}
                     className="w-10 h-10 rounded-full border-2 border-orange-600"
                   />
                 )}
-                <span className="text-gray-300">{session.user?.name}</span>
+                <span className="text-gray-300">
+                  {session.athlete.firstname} {session.athlete.lastname}
+                </span>
               </div>
               <button
-                onClick={() => signOut({ callbackUrl: "/" })}
+                onClick={handleSignOut}
                 className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 Sign Out

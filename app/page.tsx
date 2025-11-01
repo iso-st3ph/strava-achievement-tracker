@@ -1,18 +1,28 @@
 "use client";
 
-import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "authenticated") {
-      router.push("/dashboard");
-    }
-  }, [status, router]);
+    // Check if user already has a session
+    fetch("/api/session")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.session) {
+          router.push("/dashboard");
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [router]);
+
+  const handleConnect = () => {
+    window.location.href = "/api/oauth/strava";
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
@@ -25,12 +35,13 @@ export default function Home() {
             Track your running journey with custom achievements and stats
           </p>
           <div className="flex gap-4 justify-center">
-            <a
-              href="/api/auth/signin/strava?callbackUrl=/dashboard"
-              className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-lg transition-colors inline-block"
+            <button
+              onClick={handleConnect}
+              className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-8 rounded-lg transition-colors"
+              disabled={loading}
             >
-              {status === "loading" ? "Loading..." : "Connect with Strava"}
-            </a>
+              {loading ? "Loading..." : "Connect with Strava"}
+            </button>
             <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-8 rounded-lg transition-colors">
               Learn More
             </button>

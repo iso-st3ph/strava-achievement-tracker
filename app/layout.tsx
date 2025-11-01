@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import AuthProvider from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "Strava Achievement Tracker",
@@ -14,9 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
-        <AuthProvider>{children}</AuthProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
