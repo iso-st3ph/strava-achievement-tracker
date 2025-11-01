@@ -2,17 +2,78 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { StravaActivity } from "@/lib/strava";
+
+interface StravaStats {
+  athlete: {
+    id: number;
+    firstname: string;
+    lastname: string;
+  };
+  stats: {
+    all_run_totals: {
+      count: number;
+      distance: number;
+      moving_time: number;
+      elevation_gain: number;
+    };
+    ytd_run_totals: {
+      count: number;
+      distance: number;
+      moving_time: number;
+      elevation_gain: number;
+    };
+  };
+}
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [stats, setStats] = useState<StravaStats | null>(null);
+  const [activities, setActivities] = useState<StravaActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/");
     }
   }, [status, router]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchData();
+    }
+  }, [status]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch stats and activities in parallel
+      const [statsRes, activitiesRes] = await Promise.all([
+        fetch("/api/strava/stats"),
+        fetch("/api/strava/activities?per_page=10"),
+      ]);
+
+      if (!statsRes.ok || !activitiesRes.ok) {
+        throw new Error("Failed to fetch data");
+      }
+
+      const statsData = await statsRes.json();
+      const activitiesData = await activitiesRes.json();
+
+      setStats(statsData);
+      setActivities(activitiesData);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Failed to load data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (status === "loading") {
     return (
@@ -70,14 +131,26 @@ export default function Dashboard() {
             <div className="text-orange-600 text-sm font-semibold mb-1">
               TOTAL DISTANCE
             </div>
-            <div className="text-3xl font-bold">-- km</div>
+            <div className="text-3xl font-bold">
+              {loading
+                ? "..."
+                : stats
+                  ? `${(stats.stats.all_run_totals.distance / 1000).toFixed(1)} km`
+                  : "-- km"}
+            </div>
             <div className="text-gray-400 text-sm mt-1">All time</div>
           </div>
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <div className="text-orange-600 text-sm font-semibold mb-1">
               ACTIVITIES
             </div>
-            <div className="text-3xl font-bold">--</div>
+            <div className="text-3xl font-bold">
+              {loading
+                ? "..."
+                : stats
+                  ? stats.stats.all_run_totals.count
+                  : "--"}
+            </div>
             <div className="text-gray-400 text-sm mt-1">Total runs</div>
           </div>
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
@@ -89,23 +162,104 @@ export default function Dashboard() {
           </div>
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <div className="text-orange-600 text-sm font-semibold mb-1">
-              THIS MONTH
+              THIS YEAR
             </div>
-            <div className="text-3xl font-bold">-- km</div>
-            <div className="text-gray-400 text-sm mt-1">November 2025</div>
+            <div className="text-3xl font-bold">
+              {loading
+                ? "..."
+                : stats
+                  ? `${(stats.stats.ytd_run_totals.distance / 1000).toFixed(1)} km`
+                  : "-- km"}
+            </div>
+            <div className="text-gray-400 text-sm mt-1">2025</div>
           </div>
         </div>
 
         {/* Recent Activities Section */}
         <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
           <h3 className="text-2xl font-bold mb-4">Recent Activities</h3>
-          <div className="text-gray-400 text-center py-8">
-            <div className="text-5xl mb-4">🏃</div>
-            <p>No activities loaded yet</p>
-            <p className="text-sm mt-2">
-              We'll fetch your Strava activities in the next step
-            </p>
-          </div>
+          {error && (
+            <div className="text-red-400 text-center py-4">
+              {error}
+              <button
+                onClick={fetchData}
+                className="ml-4 text-orange-600 hover:text-orange-500 underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {loading && (
+            <div className="text-gray-400 text-center py-8">
+              <div className="text-5xl mb-4">⏳</div>
+              <p>Loading activities...</p>
+            </div>
+          )}
+          {!loading && !error && activities.length === 0 && (
+            <div className="text-gray-400 text-center py-8">
+              <div className="text-5xl mb-4">🏃</div>
+              <p>No activities found</p>
+              <p className="text-sm mt-2">
+                Start running and they'll appear here!
+              </p>
+            </div>
+          )}
+          {!loading && !error && activities.length > 0 && (
+            <div className="space-y-3">
+              {activities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="bg-gray-700 p-4 rounded-lg hover:bg-gray-650 transition-colors"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-lg">{activity.name}</h4>
+                      <p className="text-gray-400 text-sm">
+                        {new Date(activity.start_date_local).toLocaleDateString(
+                          "en-US",
+                          {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          }
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-orange-600 font-bold text-lg">
+                        {(activity.distance / 1000).toFixed(2)} km
+                      </div>
+                      <div className="text-gray-400 text-sm">
+                        {Math.floor(activity.moving_time / 60)}m{" "}
+                        {activity.moving_time % 60}s
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex gap-4 text-sm text-gray-400">
+                    <span>
+                      ⚡{" "}
+                      {activity.distance > 0
+                        ? (() => {
+                            const paceSeconds =
+                              activity.moving_time / (activity.distance / 1000);
+                            const minutes = Math.floor(paceSeconds / 60);
+                            const seconds = Math.floor(paceSeconds % 60);
+                            return `${minutes}:${seconds.toString().padStart(2, "0")} /km`;
+                          })()
+                        : "N/A"}
+                    </span>
+                    <span>
+                      📈 {activity.total_elevation_gain.toFixed(0)}m elevation
+                    </span>
+                    {activity.average_heartrate && (
+                      <span>❤️ {Math.round(activity.average_heartrate)} bpm</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Achievements Section */}

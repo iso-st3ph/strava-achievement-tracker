@@ -88,14 +88,7 @@ export const authOptions: NextAuthOptions = {
       id: "strava",
       name: "Strava",
       type: "oauth",
-      authorization: {
-        url: "https://www.strava.com/oauth/authorize",
-        params: {
-          scope: "read,activity:read_all,profile:read_all",
-          response_type: "code",
-          approval_prompt: "auto",
-        },
-      },
+      authorization: "https://www.strava.com/oauth/authorize?scope=read,activity:read_all,profile:read_all&approval_prompt=auto",
       token: "https://www.strava.com/oauth/token",
       userinfo: "https://www.strava.com/api/v3/athlete",
       clientId: process.env.STRAVA_CLIENT_ID,
@@ -104,7 +97,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: profile.id.toString(),
           name: `${profile.firstname} ${profile.lastname}`,
-          email: null, // Strava doesn't provide email in the basic scope
+          email: null,
           image: profile.profile_medium || profile.profile,
         };
       },
