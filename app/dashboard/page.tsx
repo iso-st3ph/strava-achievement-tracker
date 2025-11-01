@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { StravaActivity } from "@/lib/strava";
+import { Achievement } from "@/types";
+import { calculateAchievements, getUnlockedCount, sortAchievements } from "@/lib/achievements";
+import AchievementBadge from "@/components/AchievementBadge";
 
 interface StravaStats {
   athlete: {
@@ -41,6 +44,7 @@ export default function Dashboard() {
   const [session, setSession] = useState<Session | null>(null);
   const [stats, setStats] = useState<StravaStats | null>(null);
   const [activities, setActivities] = useState<StravaActivity[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +90,11 @@ export default function Dashboard() {
 
       setStats(statsData);
       setActivities(activitiesData);
+      
+      // Calculate achievements based on stats
+      const calculatedAchievements = calculateAchievements(statsData.stats);
+      const sortedAchievements = sortAchievements(calculatedAchievements);
+      setAchievements(sortedAchievements);
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Failed to load data. Please try again.");
@@ -183,7 +192,9 @@ export default function Dashboard() {
             <div className="text-orange-600 text-sm font-semibold mb-1">
               ACHIEVEMENTS
             </div>
-            <div className="text-3xl font-bold">0</div>
+            <div className="text-3xl font-bold">
+              {loading ? "..." : getUnlockedCount(achievements)}
+            </div>
             <div className="text-gray-400 text-sm mt-1">Badges earned</div>
           </div>
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
@@ -290,14 +301,35 @@ export default function Dashboard() {
 
         {/* Achievements Section */}
         <div className="mt-8 bg-gray-800 rounded-lg border border-gray-700 p-6">
-          <h3 className="text-2xl font-bold mb-4">Achievements</h3>
-          <div className="text-gray-400 text-center py-8">
-            <div className="text-5xl mb-4">🏆</div>
-            <p>Achievement system coming soon</p>
-            <p className="text-sm mt-2">
-              Track your milestones and unlock badges
-            </p>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-2xl font-bold">Achievements</h3>
+              <p className="text-gray-400 text-sm mt-1">
+                {getUnlockedCount(achievements)} of {achievements.length} unlocked
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-orange-600">
+                {achievements.length > 0
+                  ? ((getUnlockedCount(achievements) / achievements.length) * 100).toFixed(0)
+                  : 0}%
+              </div>
+              <div className="text-gray-400 text-sm">Complete</div>
+            </div>
           </div>
+          
+          {loading ? (
+            <div className="text-gray-400 text-center py-8">
+              <div className="text-5xl mb-4">⏳</div>
+              <p>Loading achievements...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {achievements.map((achievement) => (
+                <AchievementBadge key={achievement.id} achievement={achievement} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

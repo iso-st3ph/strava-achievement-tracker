@@ -30,4 +30,8 @@ export interface Achievement {
   requirement: number;
   unlocked: boolean;
   unlockedAt?: string;
+  progress?: number;
+  currentValue?: number;
+  unit?: string;
+  category?: string;
 }
