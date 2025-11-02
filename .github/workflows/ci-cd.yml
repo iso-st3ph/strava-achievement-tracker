@@ -8,6 +8,7 @@ on:
 
 env:
   NODE_VERSION: '18'
+  DATABASE_URL: postgresql://test:test@localhost:5432/test
 
 jobs:
   lint:
@@ -29,8 +30,6 @@ jobs:
       
       - name: Generate Prisma Client
         run: npx prisma generate
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/test
       
       - name: Run TypeScript type check
         run: npx tsc --noEmit
@@ -63,7 +62,6 @@ jobs:
         run: npm run build
         env:
           STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
-          DATABASE_URL: postgresql://test:test@localhost:5432/test
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
