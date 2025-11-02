@@ -30,7 +30,13 @@ export default function PaceDistribution({ activities }: PaceDistributionProps) 
     .sort((a, b) => a!.pace - b!.pace);
 
   // Create pace buckets
-  const paceBuckets = paceData.reduce((acc: any, item) => {
+  interface PaceBucket {
+    pace: string;
+    count: number;
+    totalDistance: number;
+  }
+
+  const paceBuckets = paceData.reduce((acc: Record<string, PaceBucket>, item) => {
     if (!item) return acc;
     const bucket = Math.floor(item.pace * 2) / 2; // 0.5 min/km buckets
     const bucketLabel = `${bucket.toFixed(1)}`;
@@ -49,11 +55,11 @@ export default function PaceDistribution({ activities }: PaceDistributionProps) 
     return acc;
   }, {});
 
-  const chartData = Object.values(paceBuckets).sort((a: any, b: any) => 
+  const chartData = Object.values(paceBuckets).sort((a: PaceBucket, b: PaceBucket) => 
     parseFloat(a.pace) - parseFloat(b.pace)
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: PaceBucket; value: number }> }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">

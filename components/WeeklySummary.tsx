@@ -18,7 +18,15 @@ interface WeeklySummaryProps {
 
 export default function WeeklySummary({ activities }: WeeklySummaryProps) {
   // Group activities by week
-  const weeklyData = activities.reduce((acc: any, activity) => {
+  interface WeekData {
+    week: string;
+    distance: number;
+    activities: number;
+    elevation: number;
+    time: number;
+  }
+
+  const weeklyData = activities.reduce((acc: Record<string, WeekData>, activity) => {
     const date = new Date(activity.start_date_local);
     
     // Get the start of the week (Sunday)
@@ -51,8 +59,12 @@ export default function WeeklySummary({ activities }: WeeklySummaryProps) {
   }, {});
 
   // Convert to array and sort by date
+  interface ChartData extends WeekData {
+    dateKey: string;
+  }
+
   const chartData = Object.entries(weeklyData)
-    .map(([key, value]: [string, any]) => ({
+    .map(([key, value]: [string, WeekData]) => ({
       week: value.week,
       distance: parseFloat(value.distance.toFixed(1)),
       activities: value.activities,
@@ -63,7 +75,7 @@ export default function WeeklySummary({ activities }: WeeklySummaryProps) {
     .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
     .slice(-8); // Last 8 weeks
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartData; value: number }> }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
