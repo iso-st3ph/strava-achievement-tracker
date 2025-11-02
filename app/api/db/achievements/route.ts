@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { calculateAchievements, ACHIEVEMENTS } from "@/lib/achievements";
 import { getAthleteStats } from "@/lib/strava";
 import type { Achievement } from "@/types";
-import type { Achievement as PrismaAchievement } from "@prisma/client";
 
 /**
  * Sync achievements - check for newly unlocked achievements and save them
@@ -29,7 +28,7 @@ export async function POST(request: NextRequest) {
       where: { athleteId: session.athlete.id },
     });
 
-    const existingIds = new Set(existingAchievements.map((a: PrismaAchievement) => a.achievementId));
+    const existingIds = new Set(existingAchievements.map((a: { achievementId: string }) => a.achievementId));
     
     // Find newly unlocked achievements
     const newAchievements = unlockedAchievements.filter(
@@ -91,7 +90,7 @@ export async function GET(request: NextRequest) {
     // Add unlock dates from database
     const achievementsWithDates = allAchievements.map((achievement: Achievement) => {
       const dbAchievement = unlockedAchievements.find(
-        (a: PrismaAchievement) => a.achievementId === achievement.id
+        (a: { achievementId: string; unlockedAt: Date }) => a.achievementId === achievement.id
       );
       
       return {

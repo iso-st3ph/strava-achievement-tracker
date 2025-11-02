@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getActivities } from "@/lib/strava";
 import { prisma } from "@/lib/prisma";
-import type { Activity as PrismaActivity } from "@prisma/client";
 
 /**
  * Sync activities from Strava to database
@@ -123,7 +122,21 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform to match Strava API format
-    const formattedActivities = activities.map((activity: PrismaActivity) => ({
+    const formattedActivities = activities.map((activity: {
+      id: bigint;
+      name: string;
+      distance: number;
+      movingTime: number;
+      elapsedTime: number;
+      totalElevationGain: number;
+      type: string;
+      startDate: Date;
+      startDateLocal: Date;
+      averageSpeed: number;
+      maxSpeed: number;
+      averageHeartrate: number | null;
+      maxHeartrate: number | null;
+    }) => ({
       id: activity.id,
       name: activity.name,
       distance: activity.distance,
