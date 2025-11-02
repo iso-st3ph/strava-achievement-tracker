@@ -27,11 +27,11 @@ export async function POST(request: NextRequest) {
       where: { athleteId: session.athlete.id },
     });
 
-    const existingIds = new Set(existingAchievements.map(a => a.achievementId));
+    const existingIds = new Set(existingAchievements.map((a) => a.achievementId));
     
     // Find newly unlocked achievements
     const newAchievements = unlockedAchievements.filter(
-      a => !existingIds.has(a.id)
+      (a) => !existingIds.has(a.id)
     );
 
     // Save new achievements to database
@@ -87,9 +87,9 @@ export async function GET(request: NextRequest) {
     const allAchievements = calculateAchievements(stats);
 
     // Add unlock dates from database
-    const achievementsWithDates = allAchievements.map(achievement => {
+    const achievementsWithDates = allAchievements.map((achievement) => {
       const dbAchievement = unlockedAchievements.find(
-        a => a.achievementId === achievement.id
+        (a) => a.achievementId === achievement.id
       );
       
       return {
